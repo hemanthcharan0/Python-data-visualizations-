@@ -1,0 +1,93 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Load the dataset
+df = pd.read_csv("C:\\Users\\heman\\Downloads\\hospital.csv")
+# Set base theme
+sns.set_theme(style="whitegrid")
+# Data preprocessing
+df['Date of Admission'] = pd.to_datetime(df['Date of Admission'])
+df['Discharge Date'] = pd.to_datetime(df['Discharge Date'])
+df['Stay Length'] = (df['Discharge Date'] - df['Date of Admission']).dt.days
+# 1.Display basic info
+print(df.head())
+print(df.info())
+print(df.describe())
+print(df.isnull().sum())
+# 2.Bar Plot
+plt.figure(figsize=(8, 5))
+sns.countplot(data=df, x='Blood Type', hue='Blood Type', palette='pastel', legend=False)
+plt.title("Blood Type Distribution", fontsize=14, fontweight='bold')
+plt.xlabel("Blood Type")
+plt.ylabel("Count")
+plt.tight_layout()
+plt.show()
+
+# 3. Medical Conditions
+plt.figure(figsize=(8, 5))
+sns.countplot(data=df, y='Medical Condition', hue='Medical Condition',order=df['Medical Condition'].value_counts().index,palette='crest', legend=False)
+plt.title("Most Common Medical Conditions", fontsize=14)
+plt.tight_layout()
+plt.show()
+# 4. Line graph - Avg billing per year
+df['Year'] = df['Date of Admission'].dt.year
+yearly_avg = df.groupby('Year')['Billing Amount'].mean().reset_index()
+plt.figure(figsize=(8, 5))
+sns.lineplot(data=yearly_avg, x='Year', y='Billing Amount', marker='o')
+plt.title("Avg Billing Amount Over Years")
+plt.show()
+# 5. Billing Amount by Admission Type
+plt.figure(figsize=(8, 5))
+sns.boxplot(data=df, x='Admission Type', y='Billing Amount',hue='Admission Type', palette='flare', legend=False)
+plt.title("Billing Amount by Admission Type", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 6. FacetGrid (add hue here too to avoid warnings)
+g = sns.FacetGrid(df, col="Gender", height=5, aspect=1.2)
+g.map_dataframe(sns.histplot, x="Age", kde=True, hue="Gender", multiple="stack", palette="Set2", edgecolor="black")
+g.set_axis_labels("Age", "Frequency")
+g.fig.suptitle("Age Distribution by Gender", fontsize=16, fontweight='bold')
+g.tight_layout()
+plt.subplots_adjust(top=0.85)
+plt.show()
+
+# 7. Encoded Categorical Correlation Matrix
+df['Gender_Code'] = df['Gender'].astype('category').cat.codes
+df['Admission Type_Code'] = df['Admission Type'].astype('category').cat.codes
+plt.figure(figsize=(8, 6))
+sns.heatmap(df[['Age', 'Billing Amount', 'Stay Length', 'Gender_Code', 'Admission Type_Code']].corr(),
+            annot=True, cmap="YlGnBu", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix (Encoded)", fontsize=14)
+plt.tight_layout()
+plt.show()
+# 8. Pairplot
+sns.pairplot(df[['Age', 'Billing Amount', 'Room Number']], diag_kind='hist')
+plt.suptitle('Pairplot of Numerical Features', y=1.02)
+plt.show()
+# 9. Pairplot with hue
+sns.pairplot(df[['Age', 'Billing Amount', 'Room Number', 'Gender']], hue='Gender', palette='husl')
+plt.show()
+# Plot the pie chart
+gender_counts = df['Gender'].value_counts()
+blood_counts = df['Blood Type'].value_counts() 
+plt.figure(figsize=(7, 7))
+plt.pie(
+    blood_counts, 
+    labels=blood_counts.index, 
+    autopct='%1.1f%%', 
+    startangle=140, 
+    colors=sns.color_palette('Set3')
+)
+plt.title("Patient Distribution by Blood Group")
+plt.axis('equal')
+plt.show()
+
+# 10. T-test for billing
+male_bills = df[df['Gender'] == 'Male']['Billing Amount']
+female_bills = df[df['Gender'] == 'Female']['Billing Amount']
+t_stat, p_val = stats.ttest_ind(male_bills, female_bills, equal_var=False)
+print(f"\nT-test result: t = {t_stat:.2f}, p = {p_val:.4f}")
